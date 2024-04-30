@@ -9,7 +9,7 @@ void setup()
     // When the power is turned on, a delay is required.
     delay(1500);
 
-    Serial.println("LoRa Receiver");
+    Serial.println("LoRa Receiver");s
 
     LoRa.setPins(RADIO_CS_PIN, RADIO_RST_PIN, RADIO_DIO0_PIN);
     if (!LoRa.begin(LoRa_frequency)) {
@@ -20,36 +20,29 @@ void setup()
 
 void loop()
 {
-    // try to parse packet                                                                                                                
+  static unsigned int totalPackets = 0, receivedPackets = 0, bitErrors = 0;
+    // try to parse packet
     int packetSize = LoRa.parsePacket();
     if (packetSize) {
-        // received a packet
-        Serial.print("Received packet '");
+      // received a packet
+      receivedPackets++;
+      Serial.print("Received packet '");
 
-        String recv = "";
-        // read packet
-        while (LoRa.available()) {
-            recv += (char)LoRa.read();
-        }
-
-        Serial.println(recv);
-        Serial.println("Message: " + incoming);
-        Serial.println("RSSI: " + String(LoRa.packetRssi()));
-        Serial.println("Snr: " + String(LoRa.packetSnr()));
-
-// might be unnecessary because our loras dont have a screen lol.
-#ifdef HAS_DISPLAY
-        if (u8g2) {
-            u8g2->clearBuffer();
-            char buf[256];
-            u8g2->drawStr(0, 12, "Received OK!");
-            u8g2->drawStr(0, 26, recv.c_str());
-            snprintf(buf, sizeof(buf), "RSSI:%i", LoRa.packetRssi());
-            u8g2->drawStr(0, 40, buf);
-            snprintf(buf, sizeof(buf), "SNR:%.1f", LoRa.packetSnr());
-            u8g2->drawStr(0, 56, buf);
-            u8g2->sendBuffer();
-        }
-#endif
+      String recv = "";
+      // read packet
+      while (LoRa.available()) {
+          recv += (char)LoRa.read();
+      }
+      totalPackets++;
+      Serial.println(recv);
+      Serial.println("RSSI: " + String(LoRa.packetRssi()) + "\tSNR: " + String(LoRa.packetSnr()));
+      // Periodically display PRR and BER
+      if (totalPackets % 50 == 0) { // Every 50 packets, display metrics
+        Serial.print("PRR: ");
+        Serial.print((float)receivedPackets / totalPackets * 100);
+        Serial.println("%");
+        // Serial.print("BER: ");
+        // Serial.println((float)bitErrors / (receivedPackets * expectedMsg.length() * 8));
+      }
     }
 }
